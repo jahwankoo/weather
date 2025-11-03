@@ -2,19 +2,23 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
+from streamlit_folium import st_folium
+import folium
 
-# ---- 앱 제목 ----
 st.title("🌦️ Open-Meteo Interactive Weather Dashboard")
 st.write("지도에서 위치를 클릭하면 해당 지역의 시간별 기온 데이터를 불러옵니다.")
 
-# ---- 지도 표시 ----
+# ---- 지도 생성 ----
 st.subheader("1️⃣ 지역 선택 (지도를 클릭하세요)")
-clicked_point = st.map(on_click=True)
+m = folium.Map(location=[37.5665, 126.9780], zoom_start=5)
 
-# ---- 지도 클릭 이벤트 처리 ----
-if clicked_point is not None:
-    lat = clicked_point["lat"]
-    lon = clicked_point["lon"]
+# folium 클릭 이벤트 등록
+clicked = st_folium(m, width=700, height=500)
+
+# ---- 클릭된 좌표 처리 ----
+if clicked and clicked["last_clicked"]:
+    lat = clicked["last_clicked"]["lat"]
+    lon = clicked["last_clicked"]["lng"]
 
     st.success(f"📍 선택된 위치: 위도 {lat:.4f}, 경도 {lon:.4f}")
 
@@ -40,13 +44,17 @@ if clicked_point is not None:
 
         # ---- 시각화 ----
         st.subheader("2️⃣ 시간별 기온 변화 그래프")
-        fig = px.line(df, x="time", y="temperature (°C)",
-                      title=f"{lat:.2f}, {lon:.2f} 지역의 시간별 기온",
-                      labels={"time": "시간", "temperature (°C)": "기온(℃)"})
-        st.plotly_chart(fig)
+        fig = px.line(
+            df,
+            x="time",
+            y="temperature (°C)",
+            title=f"{lat:.2f}, {lon:.2f} 지역의 시간별 기온",
+            labels={"time": "시간", "temperature (°C)": "기온(℃)"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
         # ---- 표로 보기 ----
-        st.subheader("3️⃣ 원시 데이터 보기")
+        st.subheader("3️⃣ 원시 데이터 보기 (상위 24개)")
         st.dataframe(df.head(24))
 
     except Exception as e:
